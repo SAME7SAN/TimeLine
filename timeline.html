@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>مدير المشاريع المتطور</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; padding: 20px; }
+        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(35px, 1fr)); gap: 8px; margin: 20px 0; }
+        .cell { width: 35px; height: 35px; background: #e0e0e0; border-radius: 5px; cursor: not-allowed; border: 1px solid #ccc; transition: 0.2s; }
+        .cell.available { background: #fff; cursor: pointer; border: 1px solid #40c463; }
+        .cell.active { background: #40c463; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        #timeline-wrapper { margin-top: 30px; }
+        #progress-bar { height: 25px; width: 0%; background: blue; border-radius: 15px; transition: 0.5s; }
+        .danger { background: red !important; }
+        input, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <div id="setup-screen">
+        <h2>إنشاء مشروع جديد</h2>
+        <input type="text" id="pName" placeholder="اسم المشروع">
+        <textarea id="pDesc" placeholder="وصف المشروع"></textarea>
+        <input type="number" id="pDays" placeholder="المدة الكلية (بالأيام)">
+        <button onclick="startProject()">بدء المشروع</button>
+    </div>
+
+    <div id="project-screen" style="display:none;">
+        <h2 id="viewName"></h2>
+        <p id="viewDesc" style="color: #666;"></p>
+        <div class="grid" id="grid"></div>
+        
+        <div id="timeline-wrapper">
+            <label>شريط التقدم:</label>
+            <div style="width:100%; height:25px; background:#ddd; border-radius:15px; overflow:hidden;">
+                <div id="progress-bar"></div>
+            </div>
+        </div>
+        <br>
+        <button onclick="exportData()">تصدير البيانات</button>
+        <button onclick="location.reload()" style="background:#6c757d;">خروج / جديد</button>
+    </div>
+</div>
+
+<script>
+    let project = { name: "", desc: "", days: 0, notes: {} };
+    // نفترض أن اليوم الحالي هو اليوم العاشر من المشروع لأغراض التجربة
+    const currentDay = 10; 
+
+    function startProject() {
+        project.name = document.getElementById('pName').value;
+        project.desc = document.getElementById('pDesc').value;
+        project.days = parseInt(document.getElementById('pDays').value);
+        
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('project-screen').style.display = 'block';
+        document.getElementById('viewName').innerText = project.name;
+        document.getElementById('viewDesc').innerText = project.desc;
+        renderGrid();
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        for(let i=0; i<project.days; i++) {
+            let div = document.createElement('div');
+            div.className = 'cell';
+            
+            if(i < currentDay) {
+                div.classList.add('available');
+                div.onclick = function() { 
+                    this.classList.toggle('active');
+                    if(this.classList.contains('active')) {
+                        let note = prompt("ما هو إنجازك لهذا اليوم؟");
+                        if(note) {
+                            project.notes[i] = note;
+                            this.title = note;
+                        }
+                    } else {
+                        delete project.notes[i];
+                        this.title = "";
+                    }
+                    updateProgress();
+                };
+            }
+            grid.appendChild(div);
+        }
+    }
+
+    function updateProgress() {
+        const activeCount = document.querySelectorAll('.cell.active').length;
+        const progress = (activeCount / currentDay) * 100;
+        const bar = document.getElementById('progress-bar');
+        bar.style.width = progress + "%";
+        if(progress > 75) bar.classList.add('danger');
+        else bar.classList.remove('danger');
+    }
+
+    function exportData() {
+        const dataStr = JSON.stringify(project);
+        const blob = new Blob([dataStr], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = project.name + ".json";
+        a.click();
+    }
+</script>
+</body>
+</html>
